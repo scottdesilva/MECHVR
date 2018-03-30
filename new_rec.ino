@@ -21,7 +21,7 @@ RH_NRF24 nrf24;
 
 struct player
 {
-  float vals[3];  //holds x,y,z values
+  int vals[3];  //holds x,y,z values
   int grab;
   int touch;
 };
@@ -52,20 +52,25 @@ void loop()
     if (nrf24.recv(buf, &len))
     {
 //      NRF24::printBuffer("request: ", buf, len);
-      Serial.print("got request: \n");
-      Serial.println(((player*)buf)->grab);
-      Serial.println(((player*)buf)->touch);
-      Serial.println(((player*)buf)->vals[0]);
-      Serial.println(((player*)buf)->vals[1]);
-      Serial.println(((player*)buf)->vals[2]);
+    //string s = ((player*)buf)->grab + " " + ((player*)buf)->touch+ " " + ((player*)buf)->vals[0]+ " " + ((player*)buf)->vals[1] + " " + ((player*)buf)->vals[2];
+      String val1 = (String)(((player*)buf)->touch);
+      String val2 = String(((player*)buf)->grab);
+      String val3 = String(((player*)buf)->vals[0]);
+      String val4 = String(((player*)buf)->vals[1]);
+      String val5 = String(((player*)buf)->vals[2]);
+//      Serial.println(((player*)buf)->touch);
+      Serial.println(val1 + " " + val2 + " " + val3 + " " + val4 + " " + val5);
+//      string val3 = 
+//      Serial.println((((player*)buf)->grab).ToSring() + " " + (((player*)buf)->touch).ToSring()+ " " + (((player*)buf)->vals[0]).ToSring()+ " " + (((player*)buf)->vals[1]).ToSring() + " " + (((player*)buf)->vals[2]).ToSring());
     }
     else
     {
-      Serial.println("recv failed");
+      //Serial.println("recv failed");
     }
   }
   Serial.println(" ");
-  delay(500);
+  delay(200);
 }
+
 
 

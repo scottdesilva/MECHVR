@@ -20,33 +20,39 @@ RH_NRF24 nrf24;
 // RH_NRF24 nrf24(8, 7); // For RFM73 on Anarduino Mini
 
 const int MPU_addr=0x68;  // I2C address of the MPU-6050
+int pushButton = 4;
+int touchPin = 3;
 
-struct GYRO
+struct player
 {
-  float vals[3];  //holds x,y,z values
+  int vals[3];  //holds x,y,z values
+  int grab;
+  int touch;
 };
 
-GYRO data;
+player data;
 
 void setup() 
 {
-
-  Wire.begin();
-  Wire.beginTransmission(MPU_addr);
-  Wire.write(0x6B);  // PWR_MGMT_1 register
-  Wire.write(0);     // set to zero (wakes up the MPU-6050)
-  Wire.endTransmission(true);
   Serial.begin(9600);
-
   while (!Serial) 
     ; // wait for serial port to connect. Needed for Leonardo only
   if (!nrf24.init())
     Serial.println("init failed");
   // Defaults after init are 2.402 GHz (channel 2), 2Mbps, 0dBm
-  if (!nrf24.setChannel(1))
+  if (!nrf24.setChannel(2))
     Serial.println("setChannel failed");
-  if (!nrf24.setRF(RH_NRF24::DataRate2Mbps, RH_NRF24::TransmitPower0dBm))
+  if (!nrf24.setRF(RH_NRF24::DataRate250kbps, RH_NRF24::TransmitPower0dBm))
     Serial.println("setRF failed");    
+  
+  Wire.begin();
+  Wire.beginTransmission(MPU_addr);
+  Wire.write(0x6B);  // PWR_MGMT_1 register
+  Wire.write(0);     // set to zero (wakes up the MPU-6050)
+  Wire.endTransmission(true);
+
+  pinMode(pushButton, INPUT);
+  pinMode(touchPin, INPUT);
 
 }
 
@@ -54,47 +60,32 @@ void setup()
 void loop()
 {
 
+  int buttonState = digitalRead(pushButton);
+  int touchState = digitalRead(touchPin);
+
   Wire.beginTransmission(MPU_addr);
   Wire.write(0x43);  // starting with register 0x43 (GYRO_XOUT_H)
   Wire.endTransmission(false);
   Wire.requestFrom(MPU_addr,6,true);  // request a total of 14 registers
 
+  data.grab = buttonState;
+  data.touch = touchState;
   data.vals[0]=Wire.read()<<8|Wire.read();  // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
   data.vals[1]=Wire.read()<<8|Wire.read();  // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
   data.vals[2]=Wire.read()<<8|Wire.read();  // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L) 
-
+//
+  Serial.println(data.grab);
+  Serial.println(data.touch);
   Serial.println(data.vals[0]);
   Serial.println(data.vals[1]);
   Serial.println(data.vals[2]);
+  Serial.println(sizeof(data));
 
   Serial.println("Sending to nrf24_server");
   // Send a message to nrf24_server
   //uint8_t data[] = "Hello World!";
   nrf24.send((uint8_t*)&data, sizeof(data));
-  
-  nrf24.waitPacketSent();
-  // Now wait for a reply
-  uint8_t buf[RH_NRF24_MAX_MESSAGE_LEN];
-  uint8_t len = sizeof(buf);
 
-
-  if (nrf24.waitAvailableTimeout(500))
-  { 
-    // Should be a reply message for us now   
-    if (nrf24.recv(buf, &len))
-    {
-      Serial.print("got reply: ");
-      Serial.println((char*)buf);
-    }
-    else
-    {
-      Serial.println("recv failed");
-    }
-  }
-  else
-  {
-    Serial.println("No reply, is nrf24_server running?");
-  }
-  delay(1000);
+  delay(200);
 }
 
